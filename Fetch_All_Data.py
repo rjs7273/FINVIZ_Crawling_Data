@@ -26,9 +26,9 @@ class TickerDataCollector:
         """티커 목록을 로드하는 메서드"""
         if os.path.exists(self.tickers_file):
             self.tickers_df = pd.read_csv(self.tickers_file)
-            self.tickers_df = self.tickers_df.sort_values(by='Tickers') # 인덱스가 무작위적으로 섞여 있어서 정렬
+            # self.tickers_df = self.tickers_df.sort_values(by='Tickers') # 인덱스가 무작위적으로 섞여 있어서 정렬
             # self.tickers = df['Tickers']
-            print(f"로드한 티커 : {self.tickers_df['Tickers'][:5]}")
+            # print(f"로드한 티커 : {self.tickers_df['Tickers'][:5]}")
         else:
             print(f"티커 목록 파일 '{self.tickers_file}'을 찾을 수 없습니다. Fetch_Stock_Code을 실행시켜 주세요.")
             sys.exit()
@@ -37,6 +37,9 @@ class TickerDataCollector:
         """이전에 저장된 결과 파일을 로드하는 메서드"""
         if os.path.exists(self.results_file):
             self.results_df = pd.read_csv(self.results_file,index_col=0)
+            # self.results_df = self.tickers_df.copy(deep=True) # 결과 데이터프레임에 티커 추가
+            # self.results_df.set_index('Tickers', inplace=True) # 티커명을 인덱스로 설정
+            # self.save_results()
         else:
             print(f"결과 파일 '{self.results_file}'을 찾을 수 없습니다.")
             self.results_df = self.tickers_df.copy(deep=True) # 결과 데이터프레임에 티커 추가
@@ -88,8 +91,8 @@ class TickerDataCollector:
             sys.exit()  # 프로그램 종료
         # print(f"response_status_code : {response.status_code}")
         # print(f"response : {response_data}")
-        with open("output.txt", "w", encoding="utf-8") as file:
-            file.write(response_data)
+        # with open("output.txt", "w", encoding="utf-8") as file:
+        #     file.write(response_data)
         return BeautifulSoup(response.text, "html.parser")
 
     def parse_table(self, soup):
@@ -136,19 +139,19 @@ class TickerDataCollector:
             # print(f"len(value_list) : {len(value_list)}")
             # print(f"len(self.results_df.loc[ticker]) : {len(self.results_df.loc[ticker])}")
             self.results_df.loc[ticker] = value_list  # 데이터프레임에 추가
-            self.save_results()  # 결과 저장
+            if self.results_df['Market Cap'].count() % 10 == 0:
+                self.save_results()  # 결과 저장
+        self.save_results()
 
     def save_results(self):
         """수집된 데이터를 CSV 파일로 저장하는 메서드.
         메모리 과부화를 막기 위해 10개의 티커마다 저장하도록 기능하면 좋겠다."""
-        if self.results_df['Market Cap'].count() % 10 == 0:
-            print(f"결과를 저장하는 중 : {self.results_file}")
-            self.results_df.to_csv(self.results_file, index=True)
+        print(f"결과를 저장하는 중 : {self.results_file}")
+        self.results_df.to_csv(self.results_file, index=True)
 
 if __name__ == "__main__":
     tickers_file = 'tickers.csv' # 티커 파일 경로
     financial_results_file = 'financial_results.csv' # 결과 파일 경로
 
     collector = TickerDataCollector(tickers_file, financial_results_file) # 객체 생성
-    # print(f"self.results_df.index : {collector.results_df.index[:10]}")
     collector.collect_data() # 데이터 수집 시작
